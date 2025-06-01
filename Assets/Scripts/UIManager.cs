@@ -2,10 +2,12 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIManager : MonoBehaviour
+public class UIManager : NetworkBehaviour
 {
     [SerializeField]
     private GameObject[] images;
+    [SerializeField]
+    private GameObject sphere;
 
     public void Electric()
     {
@@ -19,7 +21,16 @@ public class UIManager : MonoBehaviour
         Debug.Log("Water");
         DisableImages();
         images[1].SetActive(true);
+        SpawnShereRpc();
     }
+
+    [Rpc(SendTo.Server)]
+    private void SpawnShereRpc()
+    {
+        GameObject sphereObject = Instantiate(sphere);
+        sphereObject.GetComponent<NetworkObject>().Spawn(true);
+    }
+
 
     public void Air()
     {
