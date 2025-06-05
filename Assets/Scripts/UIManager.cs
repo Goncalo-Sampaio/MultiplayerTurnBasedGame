@@ -9,6 +9,8 @@ using UnityEngine.UI;
 public class UIManager : NetworkBehaviour
 {
     [SerializeField]
+    private GameObject networkButtons;
+    [SerializeField]
     private GameObject[] images1;
     [SerializeField]
     private GameObject[] images2;
@@ -110,6 +112,18 @@ public class UIManager : NetworkBehaviour
             you2.SetActive(true);
             player1.SetActive(true);
         }
+    }
+
+    public void StartHost()
+    {
+        networkButtons.SetActive(false);
+        NetworkManager.Singleton.StartHost();
+    }
+
+    public void StartClient()
+    {
+        networkButtons.SetActive(false);
+        NetworkManager.Singleton.StartClient();
     }
 
     public void Electric()
