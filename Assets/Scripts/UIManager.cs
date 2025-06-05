@@ -1,3 +1,5 @@
+using NUnit.Framework;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,13 +15,38 @@ public class UIManager : NetworkBehaviour
     [SerializeField]
     private GameObject player2Buttons;
 
+    [SerializeField]
+    private List<Button> player1ButtonsList;
+    [SerializeField]
+    private List<Button> player2ButtonsList;
+
     private NetworkVariable<bool> electricImage = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> waterImage = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> airImage = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> fireImage = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> earthImage = new NetworkVariable<bool>(false);
 
+    private NetworkVariable<bool> player1Played = new NetworkVariable<bool>(false);
+    private NetworkVariable<bool> player2Played = new NetworkVariable<bool>(false);
+    private NetworkVariable<ElementPicked> player1Element = new NetworkVariable<ElementPicked>(ElementPicked.None);
+    private NetworkVariable<ElementPicked> player2Element = new NetworkVariable<ElementPicked>(ElementPicked.None);
+
+    private NetworkVariable<int> player1Score = new NetworkVariable<int>(0);
+    private NetworkVariable<int> player2Score = new NetworkVariable<int>(0);
+
+    private NetworkVariable<int> turn = new NetworkVariable<int>(1);
+
     private ulong cliendID;
+
+    public enum ElementPicked
+    {
+        None,
+        Electric,
+        Water,
+        Air,
+        Fire,
+        Earth
+    }
 
     private void Start()
     {
@@ -48,6 +75,7 @@ public class UIManager : NetworkBehaviour
     {
         Debug.Log("Electric");
         DisableImagesRpc(0);
+        PickElement(ElementPicked.Electric, cliendID);
         SpawnShereRpc();
     }
 
@@ -55,6 +83,7 @@ public class UIManager : NetworkBehaviour
     {
         Debug.Log("Water");
         DisableImagesRpc(1);
+        PickElement(ElementPicked.Water, cliendID);
         SpawnShereRpc();
     }
 
@@ -62,6 +91,7 @@ public class UIManager : NetworkBehaviour
     {
         Debug.Log("Air");
         DisableImagesRpc(2);
+        PickElement(ElementPicked.Air, cliendID);
         SpawnShereRpc();
     }
 
@@ -69,6 +99,7 @@ public class UIManager : NetworkBehaviour
     {
         Debug.Log("Fire");
         DisableImagesRpc(3);
+        PickElement(ElementPicked.Fire, cliendID);
         SpawnShereRpc();
     }
 
@@ -76,6 +107,7 @@ public class UIManager : NetworkBehaviour
     {
         Debug.Log("Earth");
         DisableImagesRpc(4);
+        PickElement(ElementPicked.Earth, cliendID);
         SpawnShereRpc();
     }
 
@@ -111,6 +143,29 @@ public class UIManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
+    private void PickElement(ElementPicked element, ulong player)
+    {
+        if (player == 0)
+        {
+            player1Played.Value = true;
+            player1Element.Value = element;
+            foreach (Button button in player1ButtonsList)
+            {
+                button.interactable = false;
+            }
+        }
+        else if (player == 1)
+        {
+            player2Played.Value = true;
+            player2Element.Value = element;
+            foreach (Button button in player2ButtonsList)
+            {
+                button.interactable = false;
+            }
+        }
+    }
+
+    [Rpc(SendTo.Server)]
     private void SpawnShereRpc()
     {
         GameObject sphereObject = Instantiate(sphere);
@@ -119,20 +174,28 @@ public class UIManager : NetworkBehaviour
 
     private void OnEnable()
     {
+        //Elements Picked
         electricImage.OnValueChanged += ElectricImageChanged;
         waterImage.OnValueChanged += WaterImageChanged;
         airImage.OnValueChanged += AirImageChanged;
         fireImage.OnValueChanged += FireImageChanged;
         earthImage.OnValueChanged += EarthImageChanged;
+
+        //Turn Changed
+        turn.OnValueChanged += TurnChanged;
     }
 
     private void OnDisable()
     {
+        //Elements Picked
         electricImage.OnValueChanged -= ElectricImageChanged;
         waterImage.OnValueChanged -= WaterImageChanged;
         airImage.OnValueChanged -= AirImageChanged;
         fireImage.OnValueChanged -= FireImageChanged;
         earthImage.OnValueChanged -= EarthImageChanged;
+
+        //Turn Changed
+        turn.OnValueChanged += TurnChanged;
     }
 
     private void ElectricImageChanged(bool previous, bool current)
@@ -158,5 +221,23 @@ public class UIManager : NetworkBehaviour
     private void EarthImageChanged(bool previous, bool current)
     {
         images[4].SetActive(current);
+    }
+
+    private void TurnChanged(int previous, int current)
+    {
+        player1Played.Value = false;
+        player2Played.Value = false;
+        player1Element.Value = ElementPicked.None;
+        player2Element.Value = ElementPicked.None;
+
+        foreach (Button button in player1ButtonsList)
+        {
+            button.interactable = true;
+        }
+
+        foreach (Button button in player2ButtonsList)
+        {
+            button.interactable = true;
+        }
     }
 }
