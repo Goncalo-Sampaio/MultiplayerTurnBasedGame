@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
@@ -11,8 +12,6 @@ public class UIManager : NetworkBehaviour
     private GameObject[] images1;
     [SerializeField]
     private GameObject[] images2;
-    [SerializeField]
-    private GameObject sphere;
     [SerializeField]
     private GameObject player1Buttons;
     [SerializeField]
@@ -52,6 +51,9 @@ public class UIManager : NetworkBehaviour
     private NetworkVariable<bool> fireImage2 = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> earthImage2 = new NetworkVariable<bool>(false);
 
+    private NetworkVariable<bool> blockedImage = new NetworkVariable<bool>(false);
+    private NetworkVariable<bool> blockedImage2 = new NetworkVariable<bool>(false);
+
     private NetworkVariable<bool> player1Played = new NetworkVariable<bool>(false);
     private NetworkVariable<bool> player2Played = new NetworkVariable<bool>(false);
     private NetworkVariable<ElementPicked> player1Element = new NetworkVariable<ElementPicked>(ElementPicked.None);
@@ -62,7 +64,7 @@ public class UIManager : NetworkBehaviour
 
     private NetworkVariable<int> turn = new NetworkVariable<int>(1);
 
-    private ulong cliendID;
+    private ulong clientID;
 
     public enum ElementPicked
     {
@@ -90,9 +92,9 @@ public class UIManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        cliendID = NetworkManager.Singleton.LocalClientId;
+        clientID = NetworkManager.Singleton.LocalClientId;
 
-        if (cliendID == 0)
+        if (clientID == 0)
         {
             player2Buttons.SetActive(false);
             you.SetActive(true);
@@ -100,7 +102,7 @@ public class UIManager : NetworkBehaviour
             you2.SetActive(false);
             player1.SetActive(false);
         }
-        else if (cliendID == 1)
+        else if (clientID == 1)
         {
             player1Buttons.SetActive(false);
             you.SetActive(false);
@@ -113,46 +115,41 @@ public class UIManager : NetworkBehaviour
     public void Electric()
     {
         Debug.Log("Electric");
-        DisableImagesRpc(0, cliendID);
-        PickElementRpc(ElementPicked.Electric, cliendID);
+        DisableImagesRpc(0, clientID);
+        PickElementRpc(ElementPicked.Electric, clientID);
         SolveTurnRpc();
-        SpawnShereRpc();
     }
 
     public void Water()
     {
         Debug.Log("Water");
-        DisableImagesRpc(1, cliendID);
-        PickElementRpc(ElementPicked.Water, cliendID);
+        DisableImagesRpc(1, clientID);
+        PickElementRpc(ElementPicked.Water, clientID);
         SolveTurnRpc();
-        SpawnShereRpc();
     }
 
     public void Air()
     {
         Debug.Log("Air");
-        DisableImagesRpc(2, cliendID);
-        PickElementRpc(ElementPicked.Air, cliendID);
+        DisableImagesRpc(2, clientID);
+        PickElementRpc(ElementPicked.Air, clientID);
         SolveTurnRpc();
-        SpawnShereRpc();
     }
 
     public void Fire()
     {
         Debug.Log("Fire");
-        DisableImagesRpc(3, cliendID);
-        PickElementRpc(ElementPicked.Fire, cliendID);
+        DisableImagesRpc(3, clientID);
+        PickElementRpc(ElementPicked.Fire, clientID);
         SolveTurnRpc();
-        SpawnShereRpc();
     }
 
     public void Earth()
     {
         Debug.Log("Earth");
-        DisableImagesRpc(4, cliendID);
-        PickElementRpc(ElementPicked.Earth, cliendID);
+        DisableImagesRpc(4, clientID);
+        PickElementRpc(ElementPicked.Earth, clientID);
         SolveTurnRpc();
-        SpawnShereRpc();
     }
 
     [Rpc(SendTo.Server)]
@@ -169,18 +166,23 @@ public class UIManager : NetworkBehaviour
             switch (element)
             {
                 case 0:
+                    blockedImage.Value = true;
                     electricImage.Value = true;
                     break;
                 case 1:
+                    blockedImage.Value = true;
                     waterImage.Value = true;
                     break;
                 case 2:
+                    blockedImage.Value = true;
                     airImage.Value = true;
                     break;
                 case 3:
+                    blockedImage.Value = true;
                     fireImage.Value = true;
                     break;
                 case 4:
+                    blockedImage.Value = true;
                     earthImage.Value = true;
                     break;
                 default:
@@ -198,18 +200,23 @@ public class UIManager : NetworkBehaviour
             switch (element)
             {
                 case 0:
+                    blockedImage2.Value = true;
                     electricImage2.Value = true;
                     break;
                 case 1:
+                    blockedImage2.Value = true;
                     waterImage2.Value = true;
                     break;
                 case 2:
+                    blockedImage2.Value = true;
                     airImage2.Value = true;
                     break;
                 case 3:
+                    blockedImage2.Value = true;
                     fireImage2.Value = true;
                     break;
                 case 4:
+                    blockedImage2.Value = true;
                     earthImage2.Value = true;
                     break;
                 default:
@@ -242,17 +249,12 @@ public class UIManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void SpawnShereRpc()
-    {
-        GameObject sphereObject = Instantiate(sphere);
-        sphereObject.GetComponent<NetworkObject>().Spawn(true);
-    }
-
-    [Rpc(SendTo.Server)]
     private void SolveTurnRpc()
     {
         if (player1Played.Value && player2Played.Value)
         {
+            blockedImage.Value = false;
+            blockedImage2.Value = false;
             CompareChoices();
         }
     }
@@ -332,15 +334,42 @@ public class UIManager : NetworkBehaviour
 
         if (player1Score.Value == 10)
         {
-            youWon.SetActive(true);
+            FinishGameRpc(true);
         }
         else if (player2Score.Value == 10)
         {
-            youLose.SetActive(true);
+            FinishGameRpc(false);
         }
         else
         {
-            turn.Value++;
+            StartCoroutine(ShowResultsCoroutine());
+        }
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void FinishGameRpc(bool player1won)
+    {
+        if (clientID == 0)
+        {
+            if (player1won)
+            {
+                youWon.SetActive(true);
+            }
+            else
+            {
+                youLose.SetActive(true);
+            }
+        }
+        else if (clientID == 1)
+        {
+            if (player1won)
+            {
+                youLose.SetActive(true);
+            }
+            else
+            {
+                youWon.SetActive(true);
+            }
         }
     }
 
@@ -357,6 +386,8 @@ public class UIManager : NetworkBehaviour
         airImage2.OnValueChanged += AirImage2Changed;
         fireImage2.OnValueChanged += FireImage2Changed;
         earthImage2.OnValueChanged += EarthImage2Changed;
+        blockedImage.OnValueChanged += BlockedImageChanged;
+        blockedImage2.OnValueChanged += BlockedImage2Changed;
 
         //Turn Changed
         turn.OnValueChanged += TurnChanged;
@@ -364,6 +395,9 @@ public class UIManager : NetworkBehaviour
         //Updating the scores
         player1Score.OnValueChanged += Player1ScoreChanged;
         player2Score.OnValueChanged += Player2ScoreChanged;
+
+        player1Played.OnValueChanged += player1PlayedChanged;
+        player2Played.OnValueChanged += player2PlayedChanged;
     }
 
     private void OnDisable()
@@ -379,6 +413,8 @@ public class UIManager : NetworkBehaviour
         airImage2.OnValueChanged -= AirImage2Changed;
         fireImage2.OnValueChanged -= FireImage2Changed;
         earthImage2.OnValueChanged -= EarthImage2Changed;
+        blockedImage.OnValueChanged -= BlockedImageChanged;
+        blockedImage2.OnValueChanged -= BlockedImage2Changed;
 
         //Turn Changed
         turn.OnValueChanged -= TurnChanged;
@@ -386,6 +422,9 @@ public class UIManager : NetworkBehaviour
         //Updating the scores
         player1Score.OnValueChanged -= Player1ScoreChanged;
         player2Score.OnValueChanged -= Player2ScoreChanged;
+
+        player1Played.OnValueChanged -= player1PlayedChanged;
+        player2Played.OnValueChanged -= player2PlayedChanged;
     }
 
     private void ElectricImageChanged(bool previous, bool current)
@@ -438,24 +477,71 @@ public class UIManager : NetworkBehaviour
         images2[4].SetActive(current);
     }
 
+    private void BlockedImageChanged(bool previous, bool current)
+    {
+        images1[5].SetActive(current);
+    }
+
+    private void BlockedImage2Changed(bool previous, bool current)
+    {
+        images2[5].SetActive(current);
+    }
+
     private void TurnChanged(int previous, int current)
     {
-        if (cliendID == 0)
+        if (clientID == 0)
         {
             player1Played.Value = false;
             player2Played.Value = false;
             player1Element.Value = ElementPicked.None;
             player2Element.Value = ElementPicked.None;
-        }
 
-        foreach (Button button in player1ButtonsList)
-        {
-            button.interactable = true;
+            electricImage.Value = false;
+            waterImage.Value = false;
+            airImage.Value = false;
+            fireImage.Value = false;
+            earthImage.Value = false;
+            electricImage2.Value = false;
+            waterImage2.Value = false;
+            airImage2.Value = false;
+            fireImage2.Value = false;
+            earthImage2.Value = false;
         }
+    }
 
-        foreach (Button button in player2ButtonsList)
+    private void player1PlayedChanged(bool previous, bool current)
+    {
+        if (current)
         {
-            button.interactable = true;
+            foreach (Button button in player1ButtonsList)
+            {
+                button.interactable = false;
+            }
+        }
+        else
+        {
+            foreach (Button button in player1ButtonsList)
+            {
+                button.interactable = true;
+            }
+        }
+    }
+
+    private void player2PlayedChanged(bool previous, bool current)
+    {
+        if (current)
+        {
+            foreach (Button button in player2ButtonsList)
+            {
+                button.interactable = false;
+            }
+        }
+        else
+        {
+            foreach (Button button in player2ButtonsList)
+            {
+                button.interactable = true;
+            }
         }
     }
 
@@ -467,5 +553,11 @@ public class UIManager : NetworkBehaviour
     private void Player2ScoreChanged(int previous, int current)
     {
         player2UIScore.text = player2Score.Value.ToString();
+    }
+
+    private IEnumerator ShowResultsCoroutine()
+    {
+        yield return new WaitForSeconds(3);
+        turn.Value++;
     }
 }
