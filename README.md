@@ -133,3 +133,61 @@ When the NetworkVariable for the turn changes, it resets the necessary NetworkVa
 
 ### Relay ###
 
+The Relay is an intermediary server that when the host and the clients connect to, creates a connection between them without the need to share the host's IP. This is used for an easy and more secure peer-to-peer connection.
+
+Unity provides this service for free up to a certain threshold. But for small projects, its more than enough.
+
+#### **Network architecture diagram** ####
+![Relay 1](./Images/Relay1.png)
+
+To use the relay service, we need to initialize the Unity Services and sign in with the AuthenticationService.
+
+![Relay 2](./Images/Relay2.png)
+
+To create a relay we start by creating an allocation with the RelayService and passing a parameter that represents the possible number of connections.
+In this case we only need 2.
+
+Then to get the join code, we use the RelayServices to get it by passing the allocationId.
+
+Then to set the relay data on the Network Manager, we create a new RelayServerData passing the allocation as a parameter and set that relay data.
+
+And start the Host with the correct Data.
+
+![Relay 3](./Images/Relay3.png)
+
+To join the Relay, we use the provided code to get the allocation and then use that allocation to get the RelayServerData, setting that data in the client's NetworkManager.
+
+And start the Client with the correct Data.
+
+![Relay 4](./Images/Relay4.png)
+
+Then the client and the host will be connected and can play together.
+
+## Bandwidth Evaluation ##
+
+Using Unity's Cloud Services also allows us to check on different statistics regarding each specific service.
+
+After finishing the project's development and playing a couple of times, we can see that the total bandwidth consumption was only 424.7 KiB in 10 tests, from which 4 were complete matches and not just testing.
+
+![Bandwidth 1](./Images/Bandwidth1.png)
+
+![Bandwidth 2](./Images/Bandwidth2.png)
+
+We can also check that the bandwidth used for this 10 tests, along with the number of concurrent users expected for this project, doesn't reach at all the maximum allowed for free by Unity.
+
+This means that, for small projects like this, Unity's Relay Service is more than enough.
+
+![Bandwidth 3](./Images/Bandwidth3.png)
+
+## Bibliography ##
+
+Relay: https://www.youtube.com/watch?v=fRJlb4t_TXc&ab_channel=Rootbin
+
+Unity Documentation:
+
+- https://docs-multiplayer.unity3d.com/netcode/current/components/networkmanager/
+- https://docs-multiplayer.unity3d.com/netcode/current/basics/networkvariable/index.html
+- https://docs-multiplayer.unity3d.com/netcode/current/basics/networkobject/
+- https://docs-multiplayer.unity3d.com/netcode/current/advanced-topics/message-system/rpc/
+
+Others: https://www.youtube.com/watch?v=YmUnXsOp_t0&t=10020s&ab_channel=CodeMonkey
