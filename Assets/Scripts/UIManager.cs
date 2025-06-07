@@ -114,16 +114,9 @@ public class UIManager : NetworkBehaviour
         }
     }
 
-    public void StartHost()
+    public void Quit()
     {
-        networkButtons.SetActive(false);
-        NetworkManager.Singleton.StartHost();
-    }
-
-    public void StartClient()
-    {
-        networkButtons.SetActive(false);
-        NetworkManager.Singleton.StartClient();
+        Application.Quit();
     }
 
     public void Electric()
